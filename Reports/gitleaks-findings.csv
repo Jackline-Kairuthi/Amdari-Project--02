@@ -1,0 +1,3 @@
+﻿"RuleID","File","Line","Offender","Message"
+"stripe-access-token","scripts/legacy_deploy.sh","21",,"Found a Stripe Access Token, posing a risk to payment processing services and sensitive financial data."
+"slack-webhook-url","scripts/legacy_deploy.sh","18",,"Discovered a Slack Webhook, which could lead to unauthorized message posting and data leakage in Slack channels."

@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  postgres:
+  postgres:  #database where all data is stored
     image: postgres:15-alpine
     container_name: sentinelpay-postgres
     environment:
@@ -14,13 +14,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./seed/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  redis:
+  redis: #fast memory storage for temporary things like sessions, queues, etc.
     image: redis:7-alpine
     container_name: sentinelpay-redis
     ports:
       - "6379:6379"
 
-  payments-api:
+  payments-api:   #handles login, accounts, transactions, wallets
     build: ./services/payments-api
     container_name: sentinelpay-payments
     ports:
@@ -39,7 +39,7 @@ services:
       - postgres
       - redis
 
-  kyc-api:
+  kyc-api:  #checks identity
     build: ./services/kyc-api
     container_name: sentinelpay-kyc
     ports:
