@@ -10,46 +10,64 @@ transactions_bp = Blueprint("transactions", __name__)
 @transactions_bp.route("/search", methods=["GET"])
 @require_auth
 def search_transactions():
-    """Search transactions by reference, counterparty, or description.
+    """Search transactions by reference, counterparty, or description."""
 
     V-APP-01: Classic SQL injection. The `q` parameter is concatenated directly
     into the WHERE clause. Try /v1/transactions/search?q=' OR '1'='1
     """
     q = request.args.get("q", "")
     account_id = request.args.get("account_id", "")
+    current_user_id = request.current_user_id
 
     conn = get_connection()
     cur = conn.cursor()
     try:
-        # Concatenation, not parameterisation. Bypass auth scoping with a clever payload.
-        query = (
-            "SELECT id, account_id, reference, amount, currency, direction, "
-            "counterparty, description, status, created_at "
-            f"FROM transactions WHERE (reference LIKE '%{q}%' "
-            f"OR counterparty LIKE '%{q}%' OR description LIKE '%{q}%')"
-        )
-        if account_id:
-            query += f" AND account_id = {account_id}"
-        query += " ORDER BY created_at DESC LIMIT 50"
++        # SQL Injection Fix — use parameterised LIKE patterns
++        like_pattern = f"%{q}%"
 
-        cur.execute(query)
+        base_query = """
+            SELECT t.id, t.account_id, t.reference, t.amount, t.currency, t.direction,
+                   t.counterparty, t.description, t.status, t.created_at
+            FROM transactions t
+            JOIN accounts a ON t.account_id = a.id
+            WHERE a.user_id = %s
+              AND (t.reference LIKE %s
+                   OR t.counterparty LIKE %s
+                   OR t.description LIKE %s)
+        """
+
+        params = [current_user_id, like_pattern, like_pattern, like_pattern]
++       if account_id:
+            base_query += " AND t.account_id = %s"
+            params.append(account_id)
+
+        base_query += " ORDER BY t.created_at DESC LIMIT 50"
+
+        cur.execute(base_query, tuple(params))
         rows = cur.fetchall()
         return jsonify([dict(r) for r in rows])
     finally:
         cur.close()
         conn.close()
 
-
 @transactions_bp.route("/<reference>", methods=["GET"])
 @require_auth
 def get_transaction(reference):
-    """Fetch a single transaction by reference."""
+    """Fetch a single transaction by reference, scoped to the current user."""
+    current_user_id = request.current_user_id
+
     conn = get_connection()
     cur = conn.cursor()
     try:
         cur.execute(
-            "SELECT * FROM transactions WHERE reference = %s",
-            (reference,)
+            """
+            SELECT t.*
+            FROM transactions t
+            JOIN accounts a ON t.account_id = a.id
+            WHERE t.reference = %s
+              AND a.user_id = %s
+            """,
+            (reference, current_user_id),
         )
         txn = cur.fetchone()
         if not txn:
@@ -58,3 +76,4 @@ def get_transaction(reference):
     finally:
         cur.close()
         conn.close()
+

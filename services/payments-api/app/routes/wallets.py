@@ -13,6 +13,7 @@ wallets_bp = Blueprint("wallets", __name__)
 @require_auth
 def credit_wallet(account_id):
     """Credit funds to a wallet (e.g. inbound transfer settlement)."""
+    current_user_id = request.current_user_id
     data = request.get_json() or {}
     amount = Decimal(str(data.get("amount", "0")))
     description = data.get("description", "credit")
@@ -23,22 +24,30 @@ def credit_wallet(account_id):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute("SELECT balance FROM accounts WHERE id = %s", (account_id,))
+        # Ownership check (IDOR fix)
+        cur.execute(
+            "SELECT balance FROM accounts WHERE id = %s AND user_id = %s",
+            (account_id, current_user_id),
+        )
         row = cur.fetchone()
         if not row:
             return jsonify({"error": "account not found"}), 404
 
         new_balance = Decimal(str(row["balance"])) + amount
-        cur.execute("UPDATE accounts SET balance = %s WHERE id = %s", (new_balance, account_id))
+
+        cur.execute(
+            "UPDATE accounts SET balance = %s WHERE id = %s AND user_id = %s",
+            (new_balance, account_id, current_user_id),
+        )
 
         reference = f"TXN-{uuid.uuid4().hex[:12].upper()}"
         cur.execute(
             "INSERT INTO transactions (account_id, reference, amount, direction, description, status) "
             "VALUES (%s, %s, %s, 'credit', %s, 'completed')",
-            (account_id, reference, amount, description)
+            (account_id, reference, amount, description),
         )
-        conn.commit()
 
+        conn.commit()
         return jsonify({"reference": reference, "new_balance": str(new_balance)})
     finally:
         cur.close()
@@ -48,18 +57,8 @@ def credit_wallet(account_id):
 @wallets_bp.route("/<int:account_id>/debit", methods=["POST"])
 @require_auth
 def debit_wallet(account_id):
-    """Debit funds from a wallet.
-
-    V-APP-05: Race condition. The read of the current balance and the write
-    of the new balance happen in separate statements with no row lock and no
-    transactional boundary, so two concurrent debits can both observe the
-    same pre-balance and each succeed — allowing the account to be debited
-    below zero, or beyond the available funds.
-
-    V-APP-11: No audit log. Money movement is the most sensitive operation
-    in the platform, and there is no structured log of who debited what,
-    when, from where, and against which idempotency key.
-    """
+    """Debit funds from a wallet."""
+    current_user_id = request.current_user_id
     data = request.get_json() or {}
     amount = Decimal(str(data.get("amount", "0")))
     counterparty = data.get("counterparty", "")
@@ -71,8 +70,17 @@ def debit_wallet(account_id):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        # Read balance (no lock)
-        cur.execute("SELECT balance FROM accounts WHERE id = %s", (account_id,))
+        # Ownership check (IDOR fix)
+        cur.execute(
+            """
+            SELECT balance
+            FROM accounts
+            WHERE id = %s AND user_id = %s
+            FOR UPDATE
+            """,
+            (account_id, current_user_id),
+        )
+
         row = cur.fetchone()
         if not row:
             return jsonify({"error": "account not found"}), 404
@@ -81,21 +89,23 @@ def debit_wallet(account_id):
         if current_balance < amount:
             return jsonify({"error": "insufficient funds"}), 400
 
-        # Compute new balance in application memory
         new_balance = current_balance - amount
 
-        # Write back — two concurrent debits race here.
-        cur.execute("UPDATE accounts SET balance = %s WHERE id = %s", (new_balance, account_id))
+        cur.execute(
+            "UPDATE accounts SET balance = %s WHERE id = %s AND user_id = %s",
+            (new_balance, account_id, current_user_id),
+        )
 
         reference = f"TXN-{uuid.uuid4().hex[:12].upper()}"
         cur.execute(
             "INSERT INTO transactions (account_id, reference, amount, direction, counterparty, description, status) "
             "VALUES (%s, %s, %s, 'debit', %s, %s, 'completed')",
-            (account_id, reference, amount, counterparty, description)
+            (account_id, reference, amount, counterparty, description),
         )
-        conn.commit()
 
+        conn.commit()
         return jsonify({"reference": reference, "new_balance": str(new_balance)})
     finally:
         cur.close()
         conn.close()
+

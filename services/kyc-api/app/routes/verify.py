@@ -47,14 +47,17 @@ def lookup_kyc():
     conn = get_connection()
     cur = conn.cursor()
     try:
+        # SQL injection fix: use parameterised queries instead of f-strings
         if bvn:
-            query = f"SELECT * FROM kyc_records WHERE bvn = '{bvn}'"
+            query = "SELECT * FROM kyc_records WHERE bvn = %s"
+            params = (bvn,)
         elif nin:
-            query = f"SELECT * FROM kyc_records WHERE nin = '{nin}'"
+            query = "SELECT * FROM kyc_records WHERE nin = %s"
+            params = (nin,)
         else:
             return jsonify({"error": "bvn or nin required"}), 400
 
-        cur.execute(query)
+        cur.execute(query, params)
         records = cur.fetchall()
         return jsonify([dict(r) for r in records])
     finally:
