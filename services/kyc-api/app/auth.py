@@ -7,12 +7,23 @@ import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 from flask import request, jsonify
 
-# Require a real secret — no fallback
-JWT_SECRET = os.environ.get("JWT_SECRET")
-if not JWT_SECRET:
-    raise RuntimeError("JWT_SECRET environment variable must be set")
 
-JWT_ALGORITHM = "HS256"
+# ---------------------------
+# JWT RS256 WITH KEY ROTATION
+# ---------------------------
+
+# Load active private key for signing
+with open(os.environ["JWT_PRIVATE_KEY_PATH"], "r") as f:
+    JWT_PRIVATE_KEY = f.read()
+
+# Load all public keys for verification
+def load_public_keys():
+    return {
+        "kid1": open(os.environ["JWT_PUBLIC_KEY_PATH"], "r").read()
+    }
+
+JWT_PUBLIC_KEYS = load_public_keys()
+JWT_ALGORITHM = "RS256"
 JWT_ISSUER = "sentinelpay-api"
 JWT_EXPIRY_HOURS = 1
 
@@ -27,15 +38,24 @@ def issue_token(user_id: int, role: str) -> str:
         "exp": now + timedelta(hours=JWT_EXPIRY_HOURS),
         "iss": JWT_ISSUER,
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+    headers = {"kid": "kid1"}  # active key ID
+    return jwt.encode(payload, JWT_PRIVATE_KEY, algorithm="RS256", headers=headers)
 
 
 def decode_token(token: str) -> dict:
-    """Decode and verify a JWT."""
+    """Decode and verify a JWT with key rotation."""
+    header = jwt.get_unverified_header(token)
+    kid = header.get("kid")
+
+    public_key = JWT_PUBLIC_KEYS.get(kid)
+    if not public_key:
+        raise InvalidTokenError("Unknown key ID")
+
     return jwt.decode(
         token,
-        JWT_SECRET,
-        algorithms=[JWT_ALGORITHM],
+        public_key,
+        algorithms=["RS256"],
         options={"require": ["exp", "iat", "iss"]},
         issuer=JWT_ISSUER,
     )
@@ -61,4 +81,5 @@ def require_auth(f):
         return f(*args, **kwargs)
 
     return wrapper
+
 
