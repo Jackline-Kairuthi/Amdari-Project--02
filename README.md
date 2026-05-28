@@ -94,6 +94,6 @@ Your first commit should not be a fix. Your first commit should be the threat mo
 - Programme Lead: Nuel Ojeabulu
 - Standups: 09:30 WAT daily
 - Pod reviews: end of Day 7, Day 14, Day 21
-- Slack: `#sentinelpay-capstone`
+- Slack: `#sentinelpay-capstone.`
 
 Good luck. Make it boring to attack.
