@@ -4,6 +4,10 @@ from flask import Blueprint, request, jsonify
 from app.db import get_connection
 from app.auth import require_auth
 
+# Structured audit logging
+from app.audit import audit_log
+
+
 accounts_bp = Blueprint("accounts", __name__)
 
 
@@ -31,7 +35,19 @@ def get_account(account_id):
         account = cur.fetchone()
         if not account:
             return jsonify({"error": "account not found"}), 404
+
+        # AUDIT LOG — must run BEFORE return
+        audit_log(
+            conn,
+            user_id=current_user_id,
+            action="accounts.get",
+            resource_type="account",
+            resource_id=account_id,
+            metadata={"endpoint": "get_account"}
+        )
+
         return jsonify(dict(account))
+
     finally:
         cur.close()
         conn.close()
@@ -49,7 +65,19 @@ def list_accounts():
             (request.current_user_id,),
         )
         rows = cur.fetchall()
+
+        # AUDIT LOG — must run BEFORE return
+        audit_log(
+            conn,
+            user_id=request.current_user_id,
+            action="accounts.list",
+            resource_type="account",
+            resource_id=None,
+            metadata={"endpoint": "list_accounts", "result_count": len(rows)}
+        )
+
         return jsonify([dict(r) for r in rows])
+
     finally:
         cur.close()
         conn.close()
@@ -88,8 +116,21 @@ def update_profile(account_id):
         updated = cur.fetchone()
         if not updated:
             return jsonify({"error": "account not found"}), 404
+
         conn.commit()
+
+        # AUDIT LOG — must run BEFORE return
+        audit_log(
+            conn,
+            user_id=current_user_id,
+            action="accounts.update_profile",
+            resource_type="account",
+            resource_id=account_id,
+            metadata={"endpoint": "update_profile", "updated_fields": list(data.keys())}
+        )
+
         return jsonify(dict(updated))
+
     finally:
         cur.close()
         conn.close()

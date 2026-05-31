@@ -6,6 +6,9 @@ from flask import Blueprint, request, jsonify
 from app.db import get_connection
 from app.auth import require_auth
 
+# Structured audit logging
+from app.audit import audit_log
+
 wallets_bp = Blueprint("wallets", __name__)
 
 
@@ -48,7 +51,25 @@ def credit_wallet(account_id):
         )
 
         conn.commit()
+
+        # AUDIT LOG — must run BEFORE return
+        audit_log(
+            conn,
+            user_id=current_user_id,
+            action="wallet.credit",
+            resource_type="account",
+            resource_id=account_id,
+            metadata={
+                "amount": str(amount),
+                "new_balance": str(new_balance),
+                "reference": reference,
+                "description": description,
+                "endpoint": "credit_wallet"
+            }
+        )
+
         return jsonify({"reference": reference, "new_balance": str(new_balance)})
+
     finally:
         cur.close()
         conn.close()
@@ -70,7 +91,7 @@ def debit_wallet(account_id):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        # Ownership check (IDOR fix)
+        # Ownership check (IDOR fix) + row lock to prevent race conditions
         cur.execute(
             """
             SELECT balance
@@ -104,7 +125,26 @@ def debit_wallet(account_id):
         )
 
         conn.commit()
+
+        # AUDIT LOG — must run BEFORE return
+        audit_log(
+            conn,
+            user_id=current_user_id,
+            action="wallet.debit",
+            resource_type="account",
+            resource_id=account_id,
+            metadata={
+                "amount": str(amount),
+                "new_balance": str(new_balance),
+                "reference": reference,
+                "counterparty": counterparty,
+                "description": description,
+                "endpoint": "debit_wallet"
+            }
+        )
+
         return jsonify({"reference": reference, "new_balance": str(new_balance)})
+
     finally:
         cur.close()
         conn.close()

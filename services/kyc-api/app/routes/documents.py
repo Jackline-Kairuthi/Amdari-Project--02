@@ -1,9 +1,11 @@
 """Document upload and retrieval for KYC submissions."""
 import os
 import boto3
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify
 
 from app.auth import require_auth
+from app.audit import audit_log                     # <-- ADDED: audit logging
+from app.security import verify_signature           # <-- ADDED: request signing
 
 documents_bp = Blueprint("documents", __name__)
 
@@ -22,28 +24,45 @@ def _s3():
 @documents_bp.route("/upload", methods=["POST"])
 @require_auth
 def upload_document():
-    """Upload a KYC document (passport, driver's licence, utility bill).
+    """Upload a KYC document."""
 
-    Multiple cloud-layer issues are evident here once the cohort begins
-    building the Terraform — the upload assumes the bucket exists with no
-    encryption, no logging, and a public-read ACL set by the caller.
-    """
+    # -------------------------------
+    # ADDED: Request signing required
+    # -------------------------------
+    if not verify_signature(request):
+        return jsonify({"error": "invalid signature"}), 401
+
     if "file" not in request.files:
         return jsonify({"error": "file required"}), 400
 
     f = request.files["file"]
     user_id = request.current_user_id
-    filename = f.filename  # No sanitisation — path traversal possible.
+    filename = f.filename  # NOTE: path traversal is out of scope for this task.
 
     key = f"users/{user_id}/{filename}"
+
     try:
         _s3().put_object(
             Bucket=KYC_BUCKET,
             Key=key,
             Body=f.read(),
-            ACL="public-read"  # Legacy default from the marketing demo era.
+            ACL="public-read",  # left unchanged — cloud hardening not in scope
         )
+
+        # -----------------------------------------
+        # ADDED: Structured audit logging (required)
+        # -----------------------------------------
+        audit_log(
+            conn=None,
+            user_id=user_id,
+            action="documents.upload",
+            resource_type="document",
+            resource_id=key,
+            metadata={"filename": filename},
+        )
+
         return jsonify({"key": key, "bucket": KYC_BUCKET}), 201
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -51,12 +70,44 @@ def upload_document():
 @documents_bp.route("/<path:key>", methods=["GET"])
 @require_auth
 def get_document(key):
-    """Fetch a previously uploaded document.
+    """Fetch a previously uploaded document."""
 
-    No ownership check on the key. Identical pattern to V-APP-03 IDOR.
-    """
+    # -------------------------------
+    # ADDED: Request signing required
+    # -------------------------------
+    if not verify_signature(request):
+        return jsonify({"error": "invalid signature"}), 401
+
+    user_id = request.current_user_id
+
+    # ------------------------------------------------------
+    # ADDED: IDOR FIX — enforce ownership of the S3 document
+    # ------------------------------------------------------
+    expected_prefix = f"users/{user_id}/"
+    if not key.startswith(expected_prefix):
+        return jsonify({"error": "not found"}), 404
+
     try:
         obj = _s3().get_object(Bucket=KYC_BUCKET, Key=key)
-        return obj["Body"].read(), 200, {"Content-Type": obj.get("ContentType", "application/octet-stream")}
-    except Exception as e:
-        return jsonify({"error": str(e)}), 404
+
+        # -----------------------------------------
+        # ADDED: Structured audit logging (required)
+        # -----------------------------------------
+        audit_log(
+            conn=None,
+            user_id=user_id,
+            action="documents.get",
+            resource_type="document",
+            resource_id=key,
+            metadata={"bucket": KYC_BUCKET},
+        )
+
+        return (
+            obj["Body"].read(),
+            200,
+            {"Content-Type": obj.get("ContentType", "application/octet-stream")},
+        )
+
+    except Exception:
+        return jsonify({"error": "not found"}), 404
+

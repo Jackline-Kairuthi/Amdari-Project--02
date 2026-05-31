@@ -2,7 +2,7 @@
 
 > ⚠️ **This is a deliberately vulnerable training codebase. Do not deploy to a real environment.**
 >
-> This repository ships with documented security vulnerabilities for the VaultBridge SentinelPay Capstone Engagement. Every flaw exists on purpose. Your job is to find them, fix them, and prove your fixes work — across the application, the cloud deployment you will build, and the CI/CD pipeline you will design.
+This repository includes documented security vulnerabilities for the VaultBridge SentinelPay Capstone Engagement. Every flaw exists on purpose. Your job is to find them, fix them, and prove your fixes work — across the application, the cloud deployment you will build, and the CI/CD pipeline you will design.
 
 ---
 
@@ -94,6 +94,6 @@ Your first commit should not be a fix. Your first commit should be the threat mo
 - Programme Lead: Nuel Ojeabulu
 - Standups: 09:30 WAT daily
 - Pod reviews: end of Day 7, Day 14, Day 21
-- Slack: `#sentinelpay-capstone`
+- Slack: `#sentinelpay-capstone.`
 
 Good luck. Make it boring to attack.
