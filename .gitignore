@@ -1,13 +1,14 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+crash.log
+*.tfvars
+
+# Python build artifacts
 __pycache__/
 *.pyc
-*.pyo
-.venv/
-venv/
-.env
-.DS_Store
-*.egg-info/
-.pytest_cache/
-.coverage
-htmlcov/
-node_modules/
-*.log
+
+# Lambda layer zips
+*.zip
