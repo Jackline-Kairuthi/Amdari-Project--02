@@ -72,6 +72,11 @@ variable "jwt_secret_arn" {
   type = string
 }
 
-
+###############################################
+# ECS
+###############################################
+variable "alb_arn" {
+  type = string
+}
 
 

@@ -16,7 +16,6 @@ module "ecs" {
 
   vpc_id          = module.network.vpc_id
   private_subnets = module.network.private_subnets
-
   ecs_security_group_id = module.network.ecs_tasks_sg_id
 
   rds_endpoint     = module.database.rds_endpoint
@@ -31,7 +30,11 @@ module "ecs" {
 
   payments_image = "137071594519.dkr.ecr.us-west-2.amazonaws.com/sentinelpay:patched3"
   kyc_image      = "137071594519.dkr.ecr.us-west-2.amazonaws.com/kyc-api:py312-v5"
+
+  alb_arn = module.alb.alb_arn
+
 }
+
 
 ###############################################
 # DATABASE MODULE
@@ -59,9 +62,6 @@ module "rds_secret_rotation" {
   ecs_tasks_sg_id  = module.network.ecs_tasks_sg_id
   rotation_days      = 30
 }
-
-
-
 
 
 

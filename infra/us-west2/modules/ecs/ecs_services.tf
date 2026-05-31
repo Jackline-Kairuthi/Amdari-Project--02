@@ -8,6 +8,8 @@ resource "aws_ecs_service" "payments_api" {
   desired_count   = 1
   launch_type     = "FARGATE"
 
+  enable_execute_command = true
+
   deployment_controller {
     type = "ECS"
   }
@@ -32,7 +34,12 @@ resource "aws_ecs_service" "payments_api" {
     aws_ecs_task_definition.payments_api,
     var.payments_tg_depends_on
   ]
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }
+
 
 ###############################################
 # KYC API SERVICE
@@ -43,6 +50,8 @@ resource "aws_ecs_service" "kyc_api" {
   task_definition = aws_ecs_task_definition.kyc_api.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+
+  enable_execute_command = true
 
   deployment_controller {
     type = "ECS"
@@ -68,4 +77,9 @@ resource "aws_ecs_service" "kyc_api" {
     aws_ecs_task_definition.kyc_api,
     var.kyc_tg_depends_on
   ]
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }
+

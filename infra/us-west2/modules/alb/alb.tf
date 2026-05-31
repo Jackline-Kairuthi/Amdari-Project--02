@@ -52,7 +52,7 @@ resource "aws_lb_target_group" "kyc_tg" {
 }
 
 ###############################################
-# HTTP LISTENER
+# HTTP LISTENER (PRIMARY)
 ###############################################
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.sentinel_alb.arn
@@ -71,7 +71,7 @@ resource "aws_lb_listener" "http" {
 }
 
 ###############################################
-# HEALTH CHECK ROUTING (Payments)
+# HEALTH CHECK ROUTING
 ###############################################
 resource "aws_lb_listener_rule" "health_rule" {
   listener_arn = aws_lb_listener.http.arn
@@ -132,5 +132,7 @@ resource "aws_lb_listener_rule" "kyc_rule" {
     }
   }
 }
+
+
 
 
