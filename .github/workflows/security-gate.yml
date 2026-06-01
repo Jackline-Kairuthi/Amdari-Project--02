@@ -1,7 +1,7 @@
 name: Security Gate Pipeline
 
 on:                        #This workflow is triggered on pull requests to the main branch and can also be triggered manually.
-  pull_request:            #placeholder for pull request trigger
+  pull_request:            #placeholder for pull request trigger (Day 1 requirement)
     branches: [ main ]
   workflow_dispatch:
 
@@ -11,7 +11,7 @@ permissions:
   security-events: write
 
 jobs:
-  security-gate:           #placeholder for security gate job
+  security-gate:           #placeholder for security gate job (Day 1 requirement)
     runs-on: ubuntu-latest
 
     steps:
@@ -24,8 +24,270 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::137071594519:role/SentinelPay-GitHubOIDC-Role #Actual OIDC role ARN
           aws-region: us-west-2
+        # =========================
+      # Day 1 – Static Code Scanners
+      # =========================
+
+      # --- Gitleaks ---
+      - name: Install Gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64 \
+            -o gitleaks
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: Run Gitleaks
+        run: |
+          gitleaks detect --source . --report-format json --report-path gitleaks-report.json
+
+      # --- Semgrep ---
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        run: |
+          semgrep scan --config auto --json --output semgrep-report.json
+
+      # --- Bandit (Python security) ---
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit
+        run: |
+          bandit -r . -f json -o bandit-report.json || true
+
+      # --- Trivy filesystem scan ---
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          version: latest
+
+      - name: Trivy filesystem scan
+        run: |
+          trivy fs --exit-code 1 --severity HIGH,CRITICAL . \
+            | tee trivy-fs-report.txt
+
+      # --- Upload Day 1 reports ---
+      - name: Upload Day 1 reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: day1-static-reports
+          path: |
+            gitleaks-report.json
+            semgrep-report.json
+            bandit-report.json
+            trivy-fs-report.txt
 
       # --- Day 1 ends here ---
       # Scanners will be added on Day 2
 
+  # =========================
+  # Day 2 – IaC Gate
+  # =========================
+  iac-gate:
+    name: IaC Gate (Checkov, tfsec, Conftest)
+    runs-on: ubuntu-latest
+    needs: security-gate
+    defaults:
+      run:
+        working-directory: infra/us-west2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          output_format: cli,json
+          output_file_path: checkov-report.json
+
+      - name: Install tfsec
+        run: |
+          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          sudo mv tfsec /usr/local/bin/tfsec
+
+      - name: Run tfsec
+        run: |
+          tfsec . --format json --out tfsec-report.json
+
+      - name: Terraform plan (for Conftest)
+        run: |
+          terraform plan -out=tfplan.binary -input=false
+          terraform show -json tfplan.binary > tfplan.json
+
+      - name: Install Conftest
+        run: |
+          curl -L https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_Linux_x86_64.tar.gz \
+            -o conftest.tar.gz
+          tar xzf conftest.tar.gz
+          sudo mv conftest /usr/local/bin/conftest
+
+      - name: Run Conftest on Terraform plan
+        run: |
+          conftest test tfplan.json -p policy/terraform || echo "Conftest violations detected"
+        continue-on-error: true
+
+      - name: Upload IaC reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: iac-reports
+          path: |
+            infra/us-west2/checkov-report.json
+            infra/us-west2/tfsec-report.json
+            infra/us-west2/tfplan.json
+          if-no-files-found: ignore
+
+  # =========================
+  # Day 2 – Container Gate
+  # =========================
+  container-gate:
+    name: Container Gate (Trivy + Cosign)
+    runs-on: ubuntu-latest
+    needs: iac-gate
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_OWNER: Jackline-Kairuthi
+      PAYMENTS_IMAGE: payments-api
+      KYC_IMAGE: kyc-api
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build payments-api image
+        run: |
+          docker build -t $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }} \
+            -f payments-api/Dockerfile payments-api
+
+      - name: Build kyc-api image
+        run: |
+          docker build -t $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }} \
+            -f kyc-api/Dockerfile kyc-api
+
+      - name: Push images
+        run: |
+          docker push $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }}
+          docker push $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }}
+
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          version: latest
+
+      - name: Trivy scan payments-api
+        run: |
+          trivy image --exit-code 1 --severity CRITICAL,HIGH \
+            $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }} \
+            | tee trivy-payments-image.txt
+
+      - name: Trivy scan kyc-api
+        run: |
+          trivy image --exit-code 1 --severity CRITICAL,HIGH \
+            $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }} \
+            | tee trivy-kyc-image.txt
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.6.0
+        with:
+          cosign-release: 'v2.4.0'
+
+      - name: Cosign keyless sign images
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }}
+          cosign sign $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }}
+
+      - name: Cosign verify signatures
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign verify $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }}
+          cosign verify $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }}
+
+      - name: Upload container reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-reports
+          path: |
+            trivy-payments-image.txt
+            trivy-kyc-image.txt
+          if-no-files-found: ignore
+
+  # =========================
+  # Day 2 – DAST Gate (ZAP)
+  # =========================
+  dast-gate:
+    name: DAST Gate (ZAP Baseline)
+    runs-on: ubuntu-latest
+    needs: container-gate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start payments-api and kyc-api
+        run: |
+          docker compose -f docker-compose.payments.yml up -d
+          docker compose -f docker-compose.kyc.yml up -d
+
+      - name: Wait for services
+        run: |
+          for i in {1..30}; do
+            curl -sSf http://localhost:8001 && break
+            sleep 5
+          done
+          for i in {1..30}; do
+            curl -sSf http://localhost:8002 && break
+            sleep 5
+          done
+
+      - name: ZAP baseline scan (payments-api)
+        run: |
+          docker run --rm -v $(pwd):/zap/wrk/:rw \
+            owasp/zap2docker-stable zap-baseline.py \
+            -t http://host.docker.internal:8001 \
+            -r zap-payments-report.html \
+            -x zap-payments-report.xml || true
+
+      - name: ZAP baseline scan (kyc-api)
+        run: |
+          docker run --rm -v $(pwd):/zap/wrk/:rw \
+            owasp/zap2docker-stable zap-baseline.py \
+            -t http://host.docker.internal:8002 \
+            -r zap-kyc-report.html \
+            -x zap-kyc-report.xml || true
+
+      - name: Upload ZAP reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-reports
+          path: |
+            zap-payments-report.html
+            zap-payments-report.xml
+            zap-kyc-report.html
+            zap-kyc-report.xml
+
+      - name: Tear down environment
+        if: always()
+        run: |
+          docker compose -f docker-compose.payments.yml down || true
+          docker compose -f docker-compose.kyc.yml down || true
 
