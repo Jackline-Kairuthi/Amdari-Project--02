@@ -98,6 +98,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::137071594519:role/SentinelPay-GitHubOIDC-Role #Actual OIDC role ARN
+          aws-region: us-west-2
+          
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
