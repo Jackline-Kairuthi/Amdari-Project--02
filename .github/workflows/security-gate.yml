@@ -58,14 +58,16 @@ jobs:
 
       # --- Trivy filesystem scan ---
       - name: Install Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          version: latest
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.2_Linux-64bit.deb
+          sudo dpkg -i trivy_0.50.2_Linux-64bit.deb
 
       - name: Run Trivy filesystem scan
         run: |
           trivy fs . --severity HIGH,CRITICAL --exit-code 0 --format table --output trivy-fs-report.txt
-     
+
       # --- Upload Day 1 reports ---
       - name: Upload Day 1 reports
         uses: actions/upload-artifact@v4
