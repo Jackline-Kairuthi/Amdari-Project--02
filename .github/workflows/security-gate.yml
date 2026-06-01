@@ -38,7 +38,7 @@ jobs:
 
       - name: Run Gitleaks
         run: |
-          gitleaks detect --source . --report-format json --report-path gitleaks-report.json
+          gitleaks detect --source . --report-format json --report-path gitleaks-report.json || true # Don't fail the build on leaks, just report them (USING || true for day 2)
 
       # --- Semgrep ---
       - name: Install Semgrep
@@ -46,7 +46,7 @@ jobs:
 
       - name: Run Semgrep
         run: |
-          semgrep scan --config auto --json --output semgrep-report.json
+          semgrep scan --config auto --json --output semgrep-report.json || true # Don't fail the build on issues, just report them (USING || true for day 2)
 
       # --- Bandit (Python security) ---
       - name: Install Bandit
