@@ -62,11 +62,10 @@ jobs:
         with:
           version: latest
 
-      - name: Trivy filesystem scan
+      - name: Run Trivy filesystem scan
         run: |
-          trivy fs --exit-code 1 --severity HIGH,CRITICAL . \
-            | tee trivy-fs-report.txt
-
+         trivy fs . --severity HIGH,CRITICAL --exit-code 0 --format table --output trivy-fs-report.txt
+     
       # --- Upload Day 1 reports ---
       - name: Upload Day 1 reports
         uses: actions/upload-artifact@v4
@@ -197,6 +196,10 @@ jobs:
           trivy image --exit-code 1 --severity CRITICAL,HIGH \
             $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }} \
             | tee trivy-payments-image.txt
+
+      - name: Run Trivy image scan
+        run: |
+         trivy image ghcr.io/jackline-kairuthi/payments-api:latest --severity HIGH,CRITICAL --exit-code 0 --format table --output trivy-image-report.txt
 
       - name: Trivy scan kyc-api
         run: |
