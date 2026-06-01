@@ -1,0 +1,31 @@
+name: Security Gate Pipeline
+
+on:                        #This workflow is triggered on pull requests to the main branch and can also be triggered manually.
+  pull_request:            #placeholder for pull request trigger
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write        # Placeholder for OIDC token permissions (Day 1 requirement)
+  contents: read
+  security-events: write
+
+jobs:
+  security-gate:           #placeholder for security gate job
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Placeholder for AWS OIDC (Day 1 requirement)
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::137071594519:role/SentinelPay-GitHubOIDC-Role #Actual OIDC role ARN
+          aws-region: us-west-2
+
+      # --- Day 1 ends here ---
+      # Scanners will be added on Day 2
+
+
