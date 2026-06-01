@@ -1,0 +1,31 @@
+package terraform.security
+
+deny contains msg if {
+  some idx
+  bucket := input.resource_changes[idx]
+  bucket.type == "aws_s3_bucket"
+
+  # Check ACL for public access
+  acl := bucket.change.after.acl
+  acl == "public-read" or
+  acl == "public-read-write" or
+  acl == "website"
+
+  msg := sprintf("S3 bucket %v is publicly accessible via ACL: %v", [bucket.address, acl])
+}
+
+deny contains msg if {
+  some idx
+  bucket := input.resource_changes[idx]
+  bucket.type == "aws_s3_bucket"
+
+  # Check for public access block
+  pab := bucket.change.after.public_access_block_configuration
+  pab == null or
+  pab.block_public_acls == false or
+  pab.block_public_policy == false or
+  pab.restrict_public_buckets == false
+
+  msg := sprintf("S3 bucket %v does not block public access", [bucket.address])
+}
+
