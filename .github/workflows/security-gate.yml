@@ -258,7 +258,7 @@ jobs:
           if-no-files-found: ignore
 
   # =========================
-  # Day 2 – DAST Gate (ZAP)
+  # Day 2 – DAST Gate (ZAP Baseline)
   # =========================
   dast-gate:
     name: DAST Gate (ZAP Baseline)
