@@ -197,13 +197,13 @@ jobs:
 
       - name: Build payments-api image
         run: |
-          docker build -t $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:$GITHUB_SHA \
+          docker build -t $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }} \
             -f services/payments-api/Dockerfile \
             services/payments-api
 
       - name: Build kyc-api image
         run: |
-          docker build -t $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:$GITHUB_SHA \
+          docker build -t $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }} \
             -f services/kyc-api/Dockerfile \
             services/kyc-api
 
