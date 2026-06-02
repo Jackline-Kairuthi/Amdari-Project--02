@@ -1,11 +1,11 @@
 name: Security Gate Pipeline
 
-on:  
-  push:
+on:
+  push:                             
     branches:
        - feature/identity-data-plane         #This workflow is triggered on pull requests to the main branch and can also be triggered manually.
   pull_request:                              #placeholder for pull request trigger (Day 1 requirement)
-    branches: [ main ]
+    branches: [ main ]                        
   workflow_dispatch:
 
 permissions:
@@ -271,7 +271,7 @@ jobs:
   # =========================
   # Day 2 – DAST Gate (ZAP Baseline)
   # =========================
-   dast-gate:
+  dast-gate:
     name: DAST Gate (ZAP Baseline)
     runs-on: ubuntu-latest
     needs: container-gate
