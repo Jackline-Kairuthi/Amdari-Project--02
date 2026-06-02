@@ -7,17 +7,18 @@ resource "aws_security_group" "rds_sg" {
 
   ingress {
     description     = "Allow PostgreSQL access from ECS tasks"
-    from_port       = 3306
-    to_port         = 3306
+    from_port       = 5432
+    to_port         = 5432
     protocol        = "tcp"
     security_groups = [var.lambda_sg_id]
   }
 
   egress {
+    description = "Allow RDS to communicate within VPC"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   tags = {
@@ -40,15 +41,18 @@ resource "aws_security_group" "redis_sg" {
   }
 
   egress {
+    description = "Allow Redis to communicate within VPC"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]   # FIX: restrict egress
   }
 
   tags = {
     Name = "redis-sg"
   }
 }
+
+
 
 

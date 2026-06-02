@@ -8,6 +8,9 @@ resource "random_password" "rds" {
 
 resource "aws_secretsmanager_secret" "rds" {
   name = "sentinelpay/rds/admin"
+
+#Fix encrypted secret string with KMS key
+kms_key_id = aws_kms_key.secrets.arn
 }
 
 resource "aws_secretsmanager_secret_version" "rds" {
@@ -28,8 +31,10 @@ resource "random_password" "redis_auth" {
 
 resource "aws_secretsmanager_secret" "redis" {
   name = "sentinelpay/redis/auth-token"
-}
 
+# Fix encrypted secret string with KMS key
+kms_key_id = aws_kms_key.secrets.arn
+}
 resource "aws_secretsmanager_secret_version" "redis" {
   secret_id     = aws_secretsmanager_secret.redis.id
   secret_string = jsonencode({

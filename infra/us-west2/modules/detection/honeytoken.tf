@@ -1,3 +1,4 @@
+# checkov:skip=CKV_AWS_273:This IAM user is a honeytoken and intentionally violates SSO policy
 resource "aws_iam_user" "honeytoken" {
   name = "prod-admin-backup"
   tags = {
@@ -5,6 +6,8 @@ resource "aws_iam_user" "honeytoken" {
   }
 }
 
+# checkov:skip=CKV_AWS_40:Honeytoken requires an access key
+# checkov:skip=CKV_AWS_41:Honeytoken access key is intentionally static
 resource "aws_iam_access_key" "honeytoken" {
   user = aws_iam_user.honeytoken.name
 }

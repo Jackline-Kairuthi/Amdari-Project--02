@@ -2,7 +2,7 @@
 
 resource "aws_ecr_repository" "sentinelpay" {
   name                 = "sentinelpay"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   encryption_configuration {
     encryption_type = "KMS"
