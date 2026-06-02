@@ -249,8 +249,8 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
-          cosign sign $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }}
-          cosign sign $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }}
+          cosign sign --yes $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }}
+          cosign sign --yes $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }}
 
       - name: Cosign verify signatures
         env:
