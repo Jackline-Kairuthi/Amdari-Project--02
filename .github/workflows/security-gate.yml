@@ -126,10 +126,14 @@ jobs:
       - name: Run tfsec
         run: |
           tfsec . --format json --out tfsec-report.json || true
-
+      
       - name: Terraform plan (for Conftest)
         run: |
-          terraform plan -out=tfplan.binary -input=false
+          terraform plan \
+            -var="jwt_secret_arn=dummy" \
+            -var="vpc_cidr=10.0.0.0/16" \
+            -out=tfplan.binary
+            -input=false
           terraform show -json tfplan.binary > tfplan.json
 
       - name: Install Conftest
