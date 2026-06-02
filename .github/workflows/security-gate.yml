@@ -179,11 +179,13 @@ jobs:
       contents: read
       packages: write
       security-events: write
+
     env:
       REGISTRY: ghcr.io
       IMAGE_OWNER: jackline-kairuthi
       PAYMENTS_IMAGE: payments-api
       KYC_IMAGE: kyc-api
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -212,10 +214,15 @@ jobs:
           docker push $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }}
           docker push $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }}
 
+      # --- Trivy scans (manual, correct) ---
       - name: Install Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          version: latest
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update -y
+          sudo apt-get install -y trivy
 
       - name: Trivy scan payments-api
         run: |
@@ -229,6 +236,7 @@ jobs:
             $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }} \
             | tee trivy-kyc-image.txt
 
+      # --- Cosign signing ---
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.6.0
         with:
@@ -260,10 +268,11 @@ jobs:
   # =========================
   # Day 2 – DAST Gate (ZAP Baseline)
   # =========================
-  dast-gate:
+   dast-gate:
     name: DAST Gate (ZAP Baseline)
     runs-on: ubuntu-latest
     needs: container-gate
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -315,4 +324,3 @@ jobs:
         run: |
           docker compose -f docker-compose.payments.yml down || true
           docker compose -f docker-compose.kyc.yml down || true
-
