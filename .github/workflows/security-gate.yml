@@ -176,7 +176,7 @@ jobs:
     needs: iac-gate
     env:
       REGISTRY: ghcr.io
-      IMAGE_OWNER: Jackline-Kairuthi
+      IMAGE_OWNER: jackline-kairuthi
       PAYMENTS_IMAGE: payments-api
       KYC_IMAGE: kyc-api
     steps:
