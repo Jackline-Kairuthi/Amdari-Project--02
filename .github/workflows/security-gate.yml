@@ -1,7 +1,10 @@
 name: Security Gate Pipeline
 
-on:                        #This workflow is triggered on pull requests to the main branch and can also be triggered manually.
-  pull_request:            #placeholder for pull request trigger (Day 1 requirement)
+on:  
+  push:
+    branches:
+       - feature/identity-data-plane         #This workflow is triggered on pull requests to the main branch and can also be triggered manually.
+  pull_request:                              #placeholder for pull request trigger (Day 1 requirement)
     branches: [ main ]
   workflow_dispatch:
 
