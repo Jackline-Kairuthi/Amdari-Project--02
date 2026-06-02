@@ -1,9 +1,9 @@
 name: Security Gate Pipeline
 
 on:
-  push:                             
-    branches:
-       - feature/identity-data-plane         #This workflow is triggered on pull requests to the main branch and can also be triggered manually.
+  #push:                             
+   # branches:
+    #   - feature/identity-data-plane         #This workflow is triggered on pull requests to the main branch and can also be triggered manually.
   pull_request:                              #placeholder for pull request trigger (Day 1 requirement)
     branches: [ main ]                        
   workflow_dispatch:
@@ -256,8 +256,15 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
-          cosign verify $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }}
-          cosign verify $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }}
+          cosign verify \
+            --certificate-identity-regexp ".*github.com.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            $REGISTRY/$IMAGE_OWNER/$PAYMENTS_IMAGE:${{ github.sha }}
+
+          cosign verify \
+            --certificate-identity-regexp ".*github.com.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            $REGISTRY/$IMAGE_OWNER/$KYC_IMAGE:${{ github.sha }}
 
       - name: Upload container reports
         uses: actions/upload-artifact@v4
