@@ -130,6 +130,7 @@ jobs:
       - name: Terraform plan (for Conftest)
         run: |
           terraform plan \
+            -refresh=false \
             -var="jwt_secret_arn=dummy" \
             -var="vpc_cidr=10.0.0.0/16" \
             -out=tfplan.binary
