@@ -25,7 +25,7 @@ jobs:
           role-to-assume: arn:aws:iam::137071594519:role/SentinelPay-GitHubOIDC-Role #Actual OIDC role ARN
           aws-region: us-west-2
         # =========================
-      # Day 1 – Static Code Scanners
+      # Day 1 – Static Code Scanners (Gitleaks, Semgrep, Bandit) + Trivy filesystem scan
       # =========================
 
       # --- Gitleaks ---
@@ -85,7 +85,7 @@ jobs:
       # Scanners will be added on Day 2
 
   # =========================
-  # Day 2 – IaC Gate
+  # Day 2 – IaC Gate (Checkov, tfsec, Conftest)
   # =========================
   iac-gate:
     name: IaC Gate (Checkov, tfsec, Conftest)
@@ -122,7 +122,6 @@ jobs:
       - name: Install tfsec
         run: |
           curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
-          sudo mv tfsec /usr/local/bin/tfsec
 
       - name: Run tfsec
         run: |
