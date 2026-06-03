@@ -9,3 +9,17 @@ module "network" {
   vpc_id              = module.network.vpc_id # Pass VPC ID to network module
 }
 
+# drift trigger
+# drift trigger
+# drift trigger
+# drift trigger
+# drift trigger 3
+# drift trigger
+# drift trigger
+# drift trigger
+# reset drift
+# clean state
+# clean state
+# fix working directory
+# provide dummy vars
+# fix plan command

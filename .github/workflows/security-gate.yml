@@ -1,11 +1,11 @@
 name: Security Gate Pipeline
 
 on:
-  #push:                             
-   # branches:
-    #   - feature/identity-data-plane         #This workflow is triggered on pull requests to the main branch and can also be triggered manually.
-  pull_request:                              #placeholder for pull request trigger (Day 1 requirement)
-    branches: [ main ]                        
+  push:                             
+    branches:
+       - feature/day3-attack-iac-drift         #This workflow is triggered on pull requests to the main branch and can also be triggered manually.
+  #pull_request:                              #placeholder for pull request trigger (Day 1 requirement)
+  #  branches: [ main ]                        
   workflow_dispatch:
 
 permissions:
@@ -71,7 +71,7 @@ jobs:
 
       - name: Run Trivy filesystem scan
         run: |
-          trivy fs . --severity HIGH,CRITICAL --exit-code 0 --format table --output trivy-fs-report.txt
+          trivy fs . --severity HIGH,CRITICAL --exit-code 0 --format table --output trivy-fs-report.txt #use exit-code 1 for day 2 to fail the build on findings
 
       # --- Upload Day 1 reports ---
       - name: Upload Day 1 reports
