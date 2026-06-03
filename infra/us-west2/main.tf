@@ -20,3 +20,4 @@ module "network" {
 # reset drift
 # clean state
 # clean state
+# fix working directory

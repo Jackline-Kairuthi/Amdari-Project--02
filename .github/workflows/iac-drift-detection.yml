@@ -6,13 +6,17 @@ on:
       - feature/day3-attack-iac-drift
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   detect-drift:
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: infra/us-west2
+        working-directory: ${{ github.workspace }}/infra/us-west2
 
     steps:
       - name: Checkout repository
