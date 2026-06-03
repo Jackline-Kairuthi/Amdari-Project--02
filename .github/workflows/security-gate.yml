@@ -41,7 +41,7 @@ jobs:
 
       - name: Run Gitleaks
         run: |
-          gitleaks detect --source . --report-format json --report-path gitleaks-report.json  # Don't fail the build on leaks, just report them (USING || true for day 2)
+          gitleaks detect --source . --report-format json --report-path gitleaks-report.json || true # Don't fail the build on leaks, just report them (USING || true for day 2)
 
       # --- Semgrep ---
       - name: Install Semgrep
