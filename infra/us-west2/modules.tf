@@ -5,7 +5,9 @@
 module "alb" {
   source         = "./modules/alb"
   vpc_id         = module.network.vpc_id
+  vpc_cidr = module.network.vpc_cidr # FIX: pass VPC CIDR to ALB module
   public_subnets = module.network.public_subnets
+  environment     = var.environment
 }
 
 ###############################################
@@ -15,6 +17,7 @@ module "ecs" {
   source = "./modules/ecs"
 
   vpc_id          = module.network.vpc_id
+  vpc_cidr        = module.network.vpc_cidr
   private_subnets = module.network.private_subnets
   ecs_security_group_id = module.network.ecs_tasks_sg_id
 
@@ -35,7 +38,6 @@ module "ecs" {
 
 }
 
-
 ###############################################
 # DATABASE MODULE
 ###############################################
@@ -43,6 +45,7 @@ module "database" {
   source          = "./modules/database"
 
   vpc_id          = module.network.vpc_id
+  vpc_cidr        = module.network.vpc_cidr
   private_subnets = module.network.private_subnets
 
   ecs_sg_id       = module.network.ecs_tasks_sg_id

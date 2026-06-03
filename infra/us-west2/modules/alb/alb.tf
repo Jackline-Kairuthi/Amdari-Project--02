@@ -7,10 +7,23 @@ resource "aws_lb" "sentinel_alb" {
   security_groups    = [aws_security_group.alb_sg.id]
   subnets            = var.public_subnets
 
+  # Fix: Enable ALB access logging
+  access_logs {
+    bucket  = aws_s3_bucket.alb_logs.bucket
+    enabled = true
+  }
+
+  # Fix: Enable deletion protection
+  enable_deletion_protection = true
+
+  # Fix: Drop invalid HTTP headers
+  drop_invalid_header_fields = true
+
   tags = {
     Name = "sentinel-alb"
   }
 }
+
 
 ###############################################
 # TARGET GROUPS
@@ -60,12 +73,12 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type = "fixed-response"
+    type = "redirect"
 
-    fixed_response {
-      content_type = "text/plain"
-      message_body = "Not Found"
-      status_code  = "404"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
     }
   }
 }
@@ -133,6 +146,24 @@ resource "aws_lb_listener_rule" "kyc_rule" {
   }
 }
 
+################################################
+# S3 BUCKET FOR ALB ACCESS LOGS
+################################################
+resource "aws_s3_bucket" "alb_logs" {
+  bucket = "sentinel-alb-logs-${var.environment}"
+  force_destroy = true
 
+  tags = {
+    Name = "sentinel-alb-logs"
+  }
+}
+
+################################################
+# KMS KEY FOR SECRETS
+################################################
+resource "aws_kms_key" "secrets" {
+  description = "KMS key for RDS and Redis secrets"
+  deletion_window_in_days = 7
+}
 
 
