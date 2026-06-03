@@ -14,6 +14,7 @@ def create_app():
     app = Flask(__name__)
     app.config["JWT_SECRET"] = os.environ.get("JWT_SECRET", "sentinelpay-dev-secret")
     app.config["ENVIRONMENT"] = os.environ.get("ENVIRONMENT", "development")
+    app.config["AWS_SECRET_ACCESS_KEY"] = os.environ.get("AWS_SECRET_ACCESS_KEY", "AKIA1234567890FAKEKEY") # V-APP-01: Hardcoded AWS secret access key (for testing only)
 
     app.register_blueprint(auth_bp, url_prefix="/v1/auth")
     app.register_blueprint(accounts_bp, url_prefix="/v1/accounts")
