@@ -40,7 +40,4 @@ jobs:
         run: terraform validate
 
       - name: Terraform plan (detect drift)
-        run: terraform plan \
-          -var="jwt_secret_arn=dummy" \
-          -var="vpc_cidr=10.0.0.0/16" \
-          -refresh=true -input=false -lock=false -no-color  # Don't fail the build on drift, just report it (USING || true for day 3)
+        run: terraform plan -var="jwt_secret_arn=dummy" -var="vpc_cidr=10.0.0.0/16" -refresh=true -input=false -lock=false -no-color || true

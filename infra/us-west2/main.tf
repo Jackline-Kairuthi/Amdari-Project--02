@@ -22,3 +22,4 @@ module "network" {
 # clean state
 # fix working directory
 # provide dummy vars
+# fix plan command
