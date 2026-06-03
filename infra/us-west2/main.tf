@@ -18,3 +18,4 @@ module "network" {
 # drift trigger
 # drift trigger
 # reset drift
+# clean state
