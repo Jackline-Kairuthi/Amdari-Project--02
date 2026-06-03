@@ -9,3 +9,4 @@ module "network" {
   vpc_id              = module.network.vpc_id # Pass VPC ID to network module
 }
 
+# drift trigger
