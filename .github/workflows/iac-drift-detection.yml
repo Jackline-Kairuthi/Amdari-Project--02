@@ -1,0 +1,39 @@
+name: IaC Drift Detection (Day 3)
+
+on:
+  push:
+    branches:
+      - feature/day3-attack-iac-drift
+  workflow_dispatch:
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: infra/us-west2
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::137071594519:role/SentinelPay-GitHubOIDC-Role
+          aws-region: us-west-2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan (detect drift)
+        run: terraform plan -refresh=true -input=false -lock=false -no-color
