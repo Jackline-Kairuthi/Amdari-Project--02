@@ -1,31 +1,95 @@
-# SentinelPay — Pan-African Payments Platform
+# 🚀 SentinelPay — Secure Cloud Deployment, IaC, DevSecOps & Purple Team Simulation
+A full end‑to‑end security engineering project covering Application Security, Cloud Security, Infrastructure‑as‑Code, DevSecOps, and a Purple Team attack simulation.
+This repository contains the final, hardened version of the SentinelPay platform after completing the 21‑day VaultBridge Capstone.
 
-> ⚠️ **This is a deliberately vulnerable training codebase. Do not deploy to a real environment.**
->
-This repository includes documented security vulnerabilities for the VaultBridge SentinelPay Capstone Engagement. Every flaw exists on purpose. Your job is to find them, fix them, and prove your fixes work — across the application, the cloud deployment you will build, and the CI/CD pipeline you will design.
+# 📌 Executive Summary
+This project transforms an intentionally vulnerable fintech platform into a secure, cloud‑native, production‑ready system using:
 
----
+- AWS (ECS, RDS, ALB, VPC, Secrets Manager, CloudTrail, GuardDuty)
 
-## What is SentinelPay?
+- Terraform (IaC, remote backend, modules, drift detection)
 
-SentinelPay Technologies Ltd. is a fictional Nigerian-founded fintech operating a pan-African payments platform. The company processes card and bank-transfer payments for ~1,400 merchants across Nigeria, Ghana, Kenya, and Rwanda. After two years of fast feature delivery and zero dedicated security investment, an external researcher disclosed an IDOR vulnerability in production. The internal review that followed surfaced the rest of this repository.
+- GitHub Actions (multi‑stage DevSecOps pipeline)
 
-You are the security engineering team SentinelPay just hired.
+- Container security (Trivy)
 
-## What you're inheriting
+- IaC security (tfsec, Checkov)
 
-```
-sentinelpay/
-├── services/
-│   ├── payments-api/        # Flask service: accounts, wallets, transactions, webhooks
-│   └── kyc-api/             # Flask service: identity verification, document upload
-├── seed/                    # SQL fixtures for local development
-├── scripts/                 # Developer convenience scripts
-├── docs/                    # Architectural notes left by the previous team
-├── docker-compose.yml       # Local development orchestration
-├── .github/workflows/       # The current (inadequate) CI pipeline
-└── README.md
-```
+- Secrets scanning (Gitleaks)
+
+- Policy‑as‑Code (OPA)
+
+- Runtime threat detection (Falco)
+
+- The final deliverable includes:
+
+- A secure AWS deployment
+
+- A hardened CI/CD pipeline
+
+- A documented attack simulation
+
+- A full remediation report
+
+- A complete teardown of cloud resources
+
+# 📚 Table of Contents
+- Architecture
+
+- Features
+
+- Services
+
+- Local Development
+
+- Cloud Infrastructure (Terraform)
+
+- Security Hardening
+
+- DevSecOps Pipeline
+
+- IaC Drift Attack Simulation
+
+- Deliverables
+
+# 🏗️ Final Architecture (Post‑Hardening)
+Cloud Components
+- VPC with public/private subnets
+
+- ECS Fargate for containerized microservices
+
+- Application Load Balancer
+
+- RDS PostgreSQL (encrypted, private subnets)
+
+- ElastiCache Redis (private subnets)
+
+- Secrets Manager with automatic rotation
+
+- CloudTrail + GuardDuty
+
+- S3 remote backend + DynamoDB lock table
+
+- IAM least‑privilege roles
+
+- KMS encryption
+
+# Security Layers
+- Network segmentation
+
+- IAM hardening
+
+- Secrets rotation
+
+- Runtime threat detection
+
+- IaC drift detection
+
+- Pipeline security gates
+
+- Policy‑as‑code enforcement
+
+# 🧩 Services
 
 There are **two services**, sharing **one PostgreSQL database** and **one Redis cache**:
 
@@ -34,66 +98,174 @@ There are **two services**, sharing **one PostgreSQL database** and **one Redis 
 | `payments-api` | Python 3.11 + Flask | 8001  | Authentication, accounts, wallets, transactions, webhooks |
 | `kyc-api`      | Python 3.11 + Flask | 8002  | Identity verification, document upload, BVN/NIN lookup    |
 
-## Local development
+Both services share:
 
-You only need Docker and Docker Compose.
+PostgreSQL
 
-```bash
-# Bring up the full stack
-docker compose up --build
+Redis
 
-# Seed the database with realistic fixtures
-docker compose exec payments-api python -m app.seed
+# 🛠️ Local Development
+bash
 
-# The services are now available at:
-#   payments-api: http://localhost:8001
-#   kyc-api:      http://localhost:8002
-#   postgres:     localhost:5432  (user: sentinel, pass: sentinel123)
-#   redis:        localhost:6379
-```
+    docker compose up --build
+    docker compose exec payments-api python -m app.seed
+    
+Endpoints:
 
-A Postman collection lives in `docs/SentinelPay.postman_collection.json` with example requests against every endpoint.
+http://localhost:8001
 
-## Your engagement scope
+http://localhost:8002
 
-You have 21 days. The full engagement brief is in the capstone case study document you received with this repository. Briefly:
+# 🌩️ Cloud Infrastructure (Terraform)
+Key Features
+- Modular Terraform structure
 
-- **Week 1 — AppSec.** Threat-model the application, find every vulnerability (there are 11 in the app code, 4 more in the build and pipeline configuration), remediate them, and produce a remediation report.
-- **Week 2 — CloudSec.** **Design and build the entire AWS deployment yourselves, in Terraform.** No infrastructure code is shipped in this repo. You decide the architecture; the case study tells you the principles it must satisfy.
-- **Week 3 — DevSecOps + Purple Team.** Replace the existing CI workflow with a multi-stage security pipeline, then run the documented attack simulation against your deployment.
+- Remote backend (S3 + DynamoDB)
 
-## What is NOT in this repository
+- Encrypted state
 
-The following are **deliberately absent**. You will build them yourselves:
+- Automated drift detection
 
-- ❌ Terraform code for any AWS infrastructure
-- ❌ A working CI/CD security pipeline (the existing one is intentionally inadequate — see `.github/workflows/ci.yml`)
-- ❌ Container image signing or SBOM generation
-- ❌ OPA policies
-- ❌ Detection or response runbooks
-- ❌ A threat model
+- Secure IAM roles
 
-Producing each of these is part of your graded deliverable set (D-01 through D-10).
+- Private networking
 
-## What IS in this repository (and is broken)
+- Automated teardown
 
-A working application. It runs. It accepts requests. It moves money between wallet balances. It just does all of that very, very insecurely.
+# Deployment
+bash
 
-Your first commit should not be a fix. Your first commit should be the threat model and the vulnerability inventory.
+     terraform init
+      terraform plan
+      terraform apply
 
-## Rules of engagement
+# Teardown
+bash
 
-1. **Do not delete the vulnerabilities silently.** Every fix must be a discrete commit referencing the V-APP / V-CLD / V-PIP identifier from the vulnerability index in the case study.
-2. **Do not rewrite the application from scratch.** The point is to triage, prioritise, and patch a real-world inherited codebase, not to greenfield.
-3. **Do not push to `main` directly.** Open a pull request for everything. Peer review is graded.
-4. **Document every assumption.** If the inherited code does something ambiguous, write down what you decided and why before you change it.
-5. **Use the issue tracker.** One issue per finding. Link the fix PR to the issue. This is what your remediation report will be built from.
+       terraform destroy
+   
+# 🔐 Security Hardening Completed
+# - Application Security
+    - 11 vulnerabilities identified & remediated
 
-## Getting unstuck
+     - Authentication flaws fixed
 
-- Programme Lead: Nuel Ojeabulu
-- Standups: 09:30 WAT daily
-- Pod reviews: end of Day 7, Day 14, Day 21
-- Slack: `#sentinelpay-capstone.`
+    - IDOR eliminated
 
-Good luck. Make it boring to attack.
+     - Input validation added
+
+     - Secure session handling
+
+     - Logging & monitoring added
+
+# - Cloud Security
+      -  Private subnets for all sensitive workloads
+
+      - No public database access
+
+      - IAM least‑privilege
+
+       - Secrets Manager rotation
+
+       -KMS encryption
+
+       -CloudTrail + GuardDuty
+
+# - Pipeline Security
+       -Static code analysis
+
+        -Dependency scanning
+
+        -Container scanning (Trivy)
+
+       -IaC scanning (tfsec, Checkov)
+
+        -Secrets scanning (Gitleaks)
+
+        -OPA policy checks
+
+        -Drift detection
+
+        -Signed Terraform plans
+
+# 🔄 DevSecOps Pipeline (GitHub Actions)
+# Stages
+1. Build & Test
+
+2. Linting & SAST
+
+3. Dependency scanning
+
+4. Container scanning
+
+5. IaC scanning
+
+6. Secrets scanning
+
+7. OPA policy checks
+
+8. Terraform plan
+
+9. Manual approval
+
+10. Terraform apply
+
+11. Post‑deployment validation
+
+This pipeline blocks insecure changes automatically.
+
+# 🧨 IaC Drift Attack Simulation (Purple Team)
+# - Attack Scenario
+An attacker modifies AWS resources outside Terraform, including:
+
+       - Security groups
+
+       - IAM roles
+
+       -S3 bucket policies
+
+       -ECS task definitions
+
+# - Detection
+       -Drift detected by Terraform
+
+       -Pipeline blocks deployment
+
+       -Alerts triggered
+
+       -Manual review required
+
+# - Outcome
+       -Drift remediated
+
+       -Infrastructure restored to known‑good state
+
+       -Attack chain documented
+
+# 📦 Deliverables
+- Threat model
+
+- Vulnerability inventory
+
+- Remediation report
+
+- Terraform IaC
+
+- Secure AWS architecture
+
+- DevSecOps pipeline
+
+- Attack simulation report
+
+- Final teardown
+
+- Updated documentation
+
+
+
+
+
+
+
+
+
